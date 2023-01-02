@@ -1,6 +1,5 @@
 (module
-  (export "main" (func $main))
-
+(export "main" (func $main))
 (func $main (result i32)
 (local $sum i32)
 (local $i i32)

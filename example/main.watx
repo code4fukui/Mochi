@@ -1,1 +1,1 @@
-  (export "main" (func $main))
+(export "main" (func $main))
