@@ -1,0 +1,15 @@
+import "./wasi.watx";
+
+function test(a, b) {
+  let i, j;
+  for (i = 0; i < b; i++) {
+    for (j = 0; j < b; j++) {
+      a += a;
+    }
+  }
+  return a;
+}
+function _start() {
+  printlni32(12345);
+  printlni32(test(2, 4));
+}
