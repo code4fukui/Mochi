@@ -3,7 +3,7 @@
 Mochi is a simple programming language to make WebAssembly.  
 Mochi（もち）は、WebAssembly作成用のシンプルなプログラミング言語です。  
 
-Mochi's grammer is subset of JavaScript.  
+Mochi grammer is a subset of JavaScript.  
 Mochiの文法はJavaScriptのサブセットになっています。
 
 Mochi is stil poor.  
@@ -64,3 +64,4 @@ $ wasmer wasitest.wat
 - make [Geo3x3](https://geo3x3.com/)
 - support [WASM-4](https://wasm4.org/)
 - change the base JavaScript to TypeScript for types
+- make character
