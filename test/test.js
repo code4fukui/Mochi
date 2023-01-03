@@ -34,6 +34,7 @@ function _start() {
 }`;
 */
 //const f = `import "./wasi-runtime.watx";`;
+/*
 const f = `import "../example/wasi.watx";
 
 function test(a, b) {
@@ -49,7 +50,15 @@ function _start() {
   printlni32(12345);
   printlni32(test(2, 4));
 }`;
+*/
+//const f = "export function _start() {};"; // wasmer/wasmtime ok!
+//const f = "function _start() {};"; // wasmer NG
+//const f = "pc[0]=3;pi[4]=10";
+//const f = "v=3;"; // left.type == "Identifier"
+//const f = "function _start() { let pc, pi; pc[0]=3;pi[4]=10 };"; // wasmer NG
+//const f = "export function _start() { let v, pc; v=pc[0] }";
+const f = "let fa, fb; fa+fb;";
 
-const wat = Mochi.compile(f);
+const wat = Mochi.compile(f, { debug: true });
 console.log(wat);
 await Deno.writeTextFile("test.wat", wat);

@@ -1,13 +1,21 @@
 import { program } from 'https://code4fukui.github.io/commander-es/index.js';
 import { Mochi } from "./Mochi.js";
+import { importWASM } from "./wasmutil.js";
 
 program
-  .version("0.0.1")
-  .argument("<*.mochi to compile | *.wat to run main>")
-  .option("--wasm")
+  .version("0.0.2")
+  .argument("<*.mochi.js | *.wat | *.wasm>")
+  .option("--js", "run as JavaScript")
+  .option("--wat", "make WAT file")
+  .option("--wasm", "make WASM file")
+  .option("--wasi", "make with WASI runtime")
   .parse();
 
 const setExtension = (fn, ext) => {
+  const n2 = fn.lastIndexOf(".mochi.js");
+  if (n2 >= 0) {
+    return fn.substring(0, n2) + "." + ext;
+  }
   const n = fn.lastIndexOf(".");
   if (n < 0) {
     return fn + "." + ext;
@@ -16,37 +24,27 @@ const setExtension = (fn, ext) => {
 };
 
 const fn = program.processedArgs[0];
-//console.log(program.opts());
+const opts = program.opts();
+//console.log(opts);
 
-if (fn.endsWith(".mochi")) {
-  const src = await Deno.readTextFile(fn);
-  const wat = Mochi.compile(src);
-  await Deno.writeTextFile(setExtension(fn, "wat"), wat);
-  if (program.opts().wasm) {
-    const { wat2wasm } = await import("https://code4fukui.github.io/WABT-es/wat2wasm.js");
-    const bin = wat2wasm(wat);
-    await Deno.writeFile(setExtension(fn, "wasm"), bin);
+if (fn.endsWith(".mochi.js")) {
+  if (opts.js) {
+    const m = await import(fn);
+    console.log(m._start());
+  } else {
+    const src = await Deno.readTextFile(fn);
+    const append = opts.wasi ? await Deno.readTextFile("./wasi.watx") : "";
+    const wat = Mochi.compile(src, { append });
+    if (opts.wat) {
+      await Deno.writeTextFile(setExtension(fn, "wat"), wat);
+    }
+    if (opts.wasm) {
+      const { wat2wasm } = await import("https://code4fukui.github.io/WABT-es/wat2wasm.js");
+      const bin = wat2wasm(wat);
+      await Deno.writeFile(setExtension(fn, "wasm"), bin);
+    }
   }
 } else {
-  const getWASM = async (fn) => {
-    if (fn.endsWith(".wat")) {
-      const { WABT } = await import("https://code4fukui.github.io/WABT-es/WABT.js");
-      const src = await Deno.readTextFile(fn);
-      const wabt = await WABT();
-      const module = wabt.parseWat("test.wast", src);
-      const mbin = module.toBinary({ log: true });
-      //console.log(mbin.log);
-      return mbin.buffer;
-    } else if (fn.endsWith(".wasm")) {
-      return await Deno.readFile(fn);
-    } else {
-      throw new Error("not wat/wasm");
-    }
-  };
-  const bin = await getWASM(fn);
-  const wasm = new WebAssembly.Module(bin);
-  //const mem = new WebAssembly.Memory({ initial: 1 });
-  const imports = {};
-  const instance = new WebAssembly.Instance(wasm, imports);
-  console.log(instance.exports.main());
+  const wasm = await importWASM(fn);
+  console.log(wasm._start());
 }

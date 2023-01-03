@@ -1,43 +1,72 @@
 # Mochi lang
 
-Mochi is a simple programming language to make WebAssembly.  
-Mochi（もち）は、WebAssembly作成用のシンプルなプログラミング言語です。  
+Mochi is a simple programming language to develop WebAssembly.  
+Mochi（もち）は、WebAssembly開発用のシンプルなプログラミング言語です。  
 
 Mochi grammer is a subset of JavaScript.  
-Mochiの文法はJavaScriptのサブセットになっています。
+Mochiの文法はJavaScriptのサブセットになっています。  
+
+Mochi is a statically-typed language that defines types in Hungarian notation.  
+Mochiは、ハンガリアン記法で型を定義する静的型付け言語です。  
 
 Mochi is stil poor.  
-Mochiはまだまだ貧弱です。  
+Mochiは、まだまだ貧弱です。  
 
-## sample
+## example
 
-### sum.mochi
+### geo3x3.mochi.js
 
 ```JavaScript
-import "./main.watx";
+const { i_encode, i_decode, memory } = await importWASM("./geo3x3.wasm");
 
-function main() {
-  let sum, i;
-  sum = 0;
+const pccode = 0;
+const res = i_encode(35.65858, 139.745433, 14, pccode);
+const pccodemem = new Uint8Array(memory.buffer, 0, 14);
+const code = new TextDecoder().decode(pccodemem);
+console.log(res, code);
+```
+
+```bash
+$ deno run -A ../mochic.js geo3x3.mochi.js --wat --wasm
+$ deno run -A simple_geo3x3_mochi_wasm.js
+```
+
+also runs as JavaScript!
+
+```JavaScript
+import { i_encode, i_decode } from "./geo3x3.mochi.js";
+
+const pccode = new Uint8Array(15);
+const res = i_encode(35.65858, 139.745433, 14, pccode);
+console.log(res, pc2s(pccode));
+```
+
+```bash
+$ deno run -A simple_geo3x3_mochi_js.js
+```
+
+### sum.mochi.js
+
+```JavaScript
+export function _start() {
+  let isum, i;
+  isum = 0;
   for (i = 1; i <= 100; i++) {
-    sum += i;
+    isum += i;
   }
-  return sum;
+  return isum;
 }
 ```
 
 ```bash
-$ cd example
-$ deno run -A ../mochic.js sum.mochi
+$ deno run -A ../mochic.js sum.mochi.js --wat
 $ deno run -A ../mochic.js sum.wat
 ```
 
-### wasitest.mochi
+### wasicalc.mochi.js
 
 ```JavaScript
-import "./wasi.watx";
-
-function test(a, b) {
+function i_test(a, b) {
   let i, j;
   for (i = 0; i < b; i++) {
     for (j = 0; j < b; j++) {
@@ -48,20 +77,22 @@ function test(a, b) {
 }
 function _start() {
   printlni32(12345);
-  printlni32(test(2, 4));
+  printlni32(i_test(2, 4));
 }
 ```
 
 ```bash
-$ cd example
-$ deno run -A ../mochic.js wasitest.mochi
-$ wasmer wasitest.wat
+$ deno run -A ../mochic.js wasicalc.mochi.js --wasi --wat
+$ wasmer wasicalc.wat
 ```
+
+## application
+
+- [Geo3x3 encode/decode in Mochi](https://github.com/taisukef/Geo3x3/blob/master/README.md#in-Mochi)
 
 ## todo
 
-- support array for String
-- make [Geo3x3](https://geo3x3.com/)
 - support [WASM-4](https://wasm4.org/)
-- change the base JavaScript to TypeScript for types
 - make character
+- make logo
+- add test suite

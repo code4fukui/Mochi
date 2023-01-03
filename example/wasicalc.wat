@@ -9,7 +9,6 @@
   ;;    8 (8byte) for $fd_write result (size, err)
   ;;    - (?byte) ?? for wasmtime
   ;;   48 (32byte) for $printn buffer
-  (export "_start" (func $_start))
   
   (func $strlen (param $s i32) (result i32)
     (local $p i32)
@@ -104,8 +103,7 @@
     (call $putc (i32.const 10))
   )
   ;; -- end of wasi.watx --
-  
-(func $test (param $a i32) (param $b i32) (result i32)
+  (func $i_test (param $a i32) (param $b i32) (result i32)
 (local $i i32)
 (local $j i32)
 (local.set $i (i32.const 0))
@@ -124,8 +122,9 @@
 (local.get $a)
 (return)
 )
+(export "_start" (func $_start))
 (func $_start 
 (call $printlni32 (i32.const 12345))
-(call $printlni32 (call $test (i32.const 2) (i32.const 4)))
+(call $printlni32 (call $i_test (i32.const 2) (i32.const 4)))
 )
 )

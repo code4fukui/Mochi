@@ -8,7 +8,6 @@
   ;;    8 (8byte) for $fd_write result (size, err)
   ;;    - (?byte) ?? for wasmtime
   ;;   48 (32byte) for $printn buffer
-  (export "_start" (func $_start))
   
   (func $strlen (param $s i32) (result i32)
     (local $p i32)
