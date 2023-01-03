@@ -1,5 +1,5 @@
 # Mochi lang
-<img width="362" alt="mochi" src="https://user-images.githubusercontent.com/1715217/210368801-b8d77a77-9bc0-47e4-b1c5-c07a2013548d.png">
+![mochi](https://user-images.githubusercontent.com/1715217/210369119-73bf0643-eb32-441d-b836-5f50b72fa78f.png)
 
 Mochi is a simple programming language to develop WebAssembly.  
 Mochi（もち）は、WebAssembly開発用のシンプルなプログラミング言語です。  
