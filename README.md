@@ -96,3 +96,4 @@ $ wasmer wasicalc.wat
 - make character
 - make logo
 - add test suite
+- add docs
