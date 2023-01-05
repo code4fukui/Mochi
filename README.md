@@ -113,7 +113,7 @@ $ w4 run wasm4simple.wasm
 
 ## todo
 
-- support [WASM-4](https://wasm4.org/)
+- import/export wat & wat.js
+- add docs
 - make character
 - add test suite
-- add docs
