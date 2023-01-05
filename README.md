@@ -113,6 +113,7 @@ $ w4 run wasm4simple.wasm
 
 ## todo
 
+- add data support for String & uint8[]
 - import/export wat & wat.js
 - add docs
 - make character
