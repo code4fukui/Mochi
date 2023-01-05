@@ -64,7 +64,7 @@ $ deno run -A ../mochic.js sum.mochi.js --wat
 $ deno run -A ../mochic.js sum.wat
 ```
 
-### wasicalc.mochi.js
+### wasicalc.mochi.js for WASI
 
 ```JavaScript
 function i_test(a, b) {
@@ -85,6 +85,26 @@ function _start() {
 ```bash
 $ deno run -A ../mochic.js wasicalc.mochi.js --wasi --wat
 $ wasmer wasicalc.wat
+```
+
+### wasm4simple.mochi.js for WASM-4
+
+[wasm4simple.mochi.js](example/wasm4simple.mochi.js)
+```JavaScript
+const ps_DRAW_COLORS = 0x14;
+let icnt = 0;
+export function start() {
+}
+export function update() {
+  ps_DRAW_COLORS[0] = 0x42
+  line(0, 0, icnt, 159);
+  icnt = (icnt + 1) % 160;
+}
+```
+
+```bash
+$ deno run -A ../mochic.js wasm4simple.mochi.js --wasm --wat --wasm4
+$ w4 run wasm4simple.wasm
 ```
 
 ## application

@@ -5,6 +5,10 @@ const getNameType = (name) => {
     return "i32";
   } else if (name.startsWith("f")) {
     return "f32";
+  } else if (name.startsWith("s")) {
+    return "i16";
+  } else if (name.startsWith("c")) {
+    return "i8";
   } else {
     throw new Error("not supported type: " + name);
   }
@@ -18,6 +22,8 @@ const getASTType = (ast) => {
     return getNameType(ast.name);
   } else if (ast.type == "CallExpression") {
     return getNameType(ast.callee.name);
+  } else if (ast.type == "MemberExpression") {
+    return getNameType(ast.object.name);
   }
   console.log(ast)
   throw new Error("can't getASTType: " + ast.type);
@@ -44,6 +50,7 @@ const opmap = {
   ">=": "ge_s",
   "||": "or",
   "&&": "and",
+  "&": "and",
 };
 const getOperator = (op, ast) => { // ex) i32.add
   const op0 = op != "==" && op != ">=" && op.endsWith("=") ? op.substring(0, op.length - 1) : op;
@@ -62,6 +69,19 @@ const compile = (src, opts) => {
     return nseq++;
   };
   const blockstack = [];
+  let infunc = null;
+
+  const globalvars = {};
+  const getlocalornot = (name) => globalvars[name] ? "global.get" : "local.get";
+  const setlocalornot = (name) => {
+    const v = globalvars[name];
+    if (v == "const") {
+      throw new Exception("can't set const global vars: " + name);
+    }
+    return v ? "global.set" : "local.set";
+  };
+
+  const exportfuncs = opts.exports || {};
   
   const walk = (ast) => {
     if (ast.type == "Program") {
@@ -76,7 +96,7 @@ const compile = (src, opts) => {
     } else if (ast.type == "ExpressionStatement") {
       return walk(ast.expression);
     } else if (ast.type == "Identifier") {
-      return `(local.get $${ast.name})`;
+      return `(${getlocalornot(ast.name)} $${ast.name})`;
     } else if (ast.type == "Literal") {
       if (ast.raw[0] == "'") {
         return `(i32.const ${ast.value.charCodeAt(0)})`;
@@ -94,37 +114,41 @@ const compile = (src, opts) => {
     } else if (ast.type == "AssignmentExpression") {
       if (ast.left.type == "Identifier") {
         if (ast.operator == "=") {
-          return `(local.set $${ast.left.name} ${walk(ast.right)})`;
+          return `(${setlocalornot(ast.left.name)} $${ast.left.name} ${walk(ast.right)})`;
         } else {
           const v = ast.left.name;
           const op = getOperator(ast.operator, ast.left);
           if (op) {
-            return `(local.set $${v} (${op} (local.get $${v}) ${walk(ast.right)}))`;
+            return `(${setlocalornot(v)} $${v} (${op} (${localornot(v)}.get $${v}) ${walk(ast.right)}))`;
           }
         }
       } else if (ast.left.type == "MemberExpression") {
         const { name, type } = getMember(ast.left.object.name);
         if (type == "c") {
           if (ast.operator == "=") {
-            return `(i32.store8 (i32.add (local.get $${name}) ${walk(ast.left.property)}) ${walk(ast.right)})`;
+            return `(i32.store8 (i32.add (${getlocalornot(name)} $${name}) ${walk(ast.left.property)}) ${walk(ast.right)})`;
+          }
+        } else if (type == "s") {
+          if (ast.operator == "=") {
+            return `(i32.store16 (i32.add (${getlocalornot(name)} $${name}) (i32.mul (i32.const 2) ${walk(ast.left.property)})) ${walk(ast.right)})`;
           }
         } else if (type == "i") {
           if (ast.operator == "=") {
-            return `(i32.store (i32.add (local.get $${name}) (i32.mul (i32.const 4) ${walk(ast.left.property)})) ${walk(ast.right)})`;
+            return `(i32.store (i32.add (${getlocalornot(name)} $${name}) (i32.mul (i32.const 4) ${walk(ast.left.property)})) ${walk(ast.right)})`;
           }
         } else if (type == "f") {
           if (ast.operator == "=") {
-            return `(f32.store (i32.add (local.get $${name}) (i32.mul (i32.const 4) ${walk(ast.left.property)})) ${walk(ast.right)})`;
+            return `(f32.store (i32.add (${getlocalornot(name)} $${name}) (i32.mul (i32.const 4) ${walk(ast.left.property)})) ${walk(ast.right)})`;
           }
         }
       }
     } else if (ast.type == "UpdateExpression") {
       if (ast.operator == "++") {
         const v = ast.argument.name;
-        return `(local.set $${v} (i32.add (local.get $${v}) (i32.const 1)))`;
+        return `(${setlocalornot(v)} $${v} (i32.add (${getlocalornot(v)} $${v}) (i32.const 1)))`;
       } else if (ast.operator == "--") {
         const v = ast.argument.name;
-        return `(local.set $${v} (i32.sub (local.get $${v}) (i32.const 1)))`;
+        return `(${setlocalornot(v)} $${v} (i32.sub (${getlocalornot(v)} $${v}) (i32.const 1)))`;
       }
     } else if (ast.type == "CallExpression") {
       const param = ast.arguments.length == 0 ? "" : " " + ast.arguments.map(a => walk(a)).join(" ");
@@ -161,18 +185,53 @@ const compile = (src, opts) => {
       const bname = blockstack[blockstack.length - 1];
       return `(br ${bname})`;
     } else if (ast.type == "VariableDeclaration") {
-      const res = [];
-      for (const d of ast.declarations) {
-        res.push(`(local $${d.id.name} ${getNameType(d.id.name)})`);
-        if (d.init) {
-          throw new Error("can't set initial value");
+      if (infunc) {
+        const res = [];
+        for (const d of ast.declarations) {
+          res.push(`(local $${d.id.name} ${getNameType(d.id.name)})`);
+          if (d.init) {
+            throw new Error("can't set initial value in a function");
+          }
         }
+        return res.join("\n");
+      } else { // global
+        const res = [];
+        for (const d of ast.declarations) {
+          const name = d.id.name;
+          const chk = globalvars[name];
+          if (chk) {
+            throw new Exception("already exists global var: " + name);
+          }
+          globalvars[name] = true;
+          const t = getNameType(d.id.name);
+          if (!d.init) {
+            throw new Error("must set initial value in global");
+          }
+          const mut = ast.kind == "const" ? t : `(mut ${t})`;
+          if (d.init.type != "Literal") {
+            throw new Error("can't calc for global");
+          }
+          res.push(`(global $${d.id.name} ${mut} (${t}.const ${d.init.value}))`);
+        }
+        return res.join("\n");
       }
-      return res.join("\n");
     } else if (ast.type == "FunctionDeclaration") {
+      if (infunc) {
+        throw new Exception("can't put func in func");
+      }
+      infunc = ast.id.name;
+      let res;
       const p = ast.params.map(p => `(param $${p.name} ${getNameType(p.name)})`).join(" ");
-      const result = ast.id.name[0] == "_" ? "" : `(result ${getNameType(ast.id.name)})`;
-      return `(func $${ast.id.name} ${p.length ? p + " " : ""}${result}\n${walk(ast.body)}\n)`;
+      const expf = exportfuncs[ast.id.name];
+      if (!expf) {
+        const result = ast.id.name[0] == "_" ? "" : `(result ${getNameType(ast.id.name)})`;
+        res = `(func $${ast.id.name} ${p.length ? p + " " : ""}${result}\n${walk(ast.body)}\n)`;
+      } else {
+        const result = expf.result ? `(result ${expf.result})` : "";
+        res = `(func $${ast.id.name} ${p.length ? p + " " : ""}${result}\n${walk(ast.body)}\n)`;
+      }
+      infunc = null;
+      return res;
     } else if (ast.type == "ExportNamedDeclaration") {
       const name = ast.declaration.id.name;
       return `(export "${name}" (func $${name}))\n` + walk(ast.declaration);
@@ -189,9 +248,11 @@ const compile = (src, opts) => {
     } else if (ast.type == "MemberExpression") {
       const { name, type } = getMember(ast.object.name);
       if (type == "c") {
-        return `(i32.load8_u (i32.add (local.get $${name}) ${walk(ast.property)}))`;
+        return `(i32.load8_u (i32.add (${getlocalornot(name)} $${name}) ${walk(ast.property)}))`;
+      } else if (type == "s") {
+        return `(i32.load16_u (i32.add (${getlocalornot(name)} $${name}) ${walk(ast.property)}))`;
       } else if (type == "i") {
-        return `(i32.load (i32.add (local.get $${name}) ${walk(ast.left.property)}))`;
+        return `(i32.load (i32.add (${getlocalornot(name)} $${name}) ${walk(ast.property)}))`;
       }
     }
     console.log(JSON.stringify(ast, null, 2));

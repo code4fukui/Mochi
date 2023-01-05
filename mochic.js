@@ -9,6 +9,7 @@ program
   .option("--wat", "make WAT file")
   .option("--wasm", "make WASM file")
   .option("--wasi", "make with WASI runtime")
+  .option("--wasm4", "make with WASM-4 runtime")
   .parse();
 
 const setExtension = (fn, ext) => {
@@ -33,8 +34,21 @@ if (fn.endsWith(".mochi.js")) {
     console.log(m._start());
   } else {
     const src = await Deno.readTextFile(fn);
-    const append = opts.wasi ? await Deno.readTextFile("./wasi.watx") : "";
-    const wat = Mochi.compile(src, { append });
+    const getOptions = async () => {
+      if (opts.wasi) {
+        return { append: await Deno.readTextFile("./wasi.watx") };
+      } else if (opts.wasm4) {
+        return {
+          append: await Deno.readTextFile("./wasm4.watx"),
+          exports: {
+            "start": [],
+            "update": [],
+          }
+        };
+      }
+      return null;
+    };
+    const wat = Mochi.compile(src, await getOptions());
     if (opts.wat) {
       await Deno.writeTextFile(setExtension(fn, "wat"), wat);
     }

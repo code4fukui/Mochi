@@ -1,7 +1,10 @@
 (module
 (memory 1)
 (export "memory" (memory 0))
-(local $fa f32)
-(local $fb f32)
-(f32.add (local.get $fa) (local.get $fb))
+(global $ps_GAMEPAD1 i32 (i32.const 22))
+(global $x (mut i32) (i32.const 0))
+(export "_update" (func $_update))
+(func $_update 
+(global.set $x (i32.load16 (i32.add (global.get $ps_GAMEPAD1) (i32.const 0))))
+)
 )

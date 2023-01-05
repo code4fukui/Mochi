@@ -57,7 +57,16 @@ function _start() {
 //const f = "v=3;"; // left.type == "Identifier"
 //const f = "function _start() { let pc, pi; pc[0]=3;pi[4]=10 };"; // wasmer NG
 //const f = "export function _start() { let v, pc; v=pc[0] }";
-const f = "let fa, fb; fa+fb;";
+//const f = "let fa, fb; fa+fb;";
+//const f = "let fa = 3;";
+//const f = "function a() { function b(){} };"
+//const f = "const fa = 3.14, ia = 300;";
+//const f = "const fa = 3.14, ia = 300; export function _start() { return fa }";
+const f = `const ps_GAMEPAD1 = 0x16;
+let x = 0;
+export function _update() {
+ x = ps_GAMEPAD1[0];
+}`;
 
 const wat = Mochi.compile(f, { debug: true });
 console.log(wat);
