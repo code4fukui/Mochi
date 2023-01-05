@@ -95,6 +95,5 @@ $ wasmer wasicalc.wat
 
 - support [WASM-4](https://wasm4.org/)
 - make character
-- make logo
 - add test suite
 - add docs
