@@ -1,5 +1,10 @@
 import * as esprima from "https://code4fukui.github.io/esprima/es/esprima.min.js";
 
+const parse = (src) => {
+  const ast = esprima.parseModule(src);
+  return ast;
+};
+
 const getNameType = (name) => {
   if (name.length == 1 || name.startsWith("i") || name.startsWith("p")) {
     return "i32";
@@ -63,7 +68,7 @@ const getOperator = (op, ast) => { // ex) i32.add
   return type + "." + op2;
 };
 
-const compile = (src, opts) => {
+const compile = (src, opts = {}) => {
   let nseq = 0;
   const seq = () => {
     return nseq++;
@@ -119,7 +124,7 @@ const compile = (src, opts) => {
           const v = ast.left.name;
           const op = getOperator(ast.operator, ast.left);
           if (op) {
-            return `(${setlocalornot(v)} $${v} (${op} (${localornot(v)}.get $${v}) ${walk(ast.right)}))`;
+            return `(${setlocalornot(v)} $${v} (${op} (${getlocalornot(v)} $${v}) ${walk(ast.right)}))`;
           }
         }
       } else if (ast.left.type == "MemberExpression") {
@@ -259,7 +264,7 @@ const compile = (src, opts) => {
     throw new Error("unsupported:" + ast.type + " / " + ast?.operator);
   };
 
-  const ast = esprima.parseModule(src);
+  const ast = parse(src);
   if (opts?.debug) {
     console.log(JSON.stringify(ast, null, 2));
   }
@@ -270,4 +275,4 @@ const compile = (src, opts) => {
   }
 }
 
-export const Mochi = { compile };
+export const Mochi = { compile, parse };

@@ -15,7 +15,6 @@ export const getWASM = async (fn) => {
 };
 
 export const importWASM = async (fn, imports = {}) => {
-  const wasm = await getWASM(fn);
   const bin = await getWASM(fn);
   const module = new WebAssembly.Module(bin);
   //const mem = new WebAssembly.Memory({ initial: 1 });
