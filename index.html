@@ -1,0 +1,98 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>Mochi Playground</title>
+</head><body>
+<main>
+<h1>Mochi Playground</h1>
+<div class=divchks>
+  <label><input type=radio name=radiotype checked id=chkast>AST (構文木)</label>
+  <label><input type=radio name=radiotype id=chkwat>WAT (wasm S式)</label>
+</div>
+<div class=diveditor id=divprog></div>
+<div class=diveditor id=divrun></div>
+</main>
+<hr>
+<a href=https://github.com/code4fukui/Mochi/>src on GitHub</a>
+
+<script type="module">
+import { monaco } from "https://code4fukui.github.io/monaco-editor/monaco.js";
+import { Mochi } from "./Mochi.js";
+
+const compile = (src) => {
+  const output = Mochi.compile(src);
+  console.log(output);
+  return output;
+};
+
+const makeEditor = (div, language) => {
+  return monaco.editor.create(div, {
+    language,
+    autoIndent: true,
+    //autoIndent: "none",
+    //formatOnPaste: true,
+    //formatOnType: true,
+
+    suggestOnTriggerCharacters: false,  // トリガーキャラクターでの補完を無効化
+    acceptSuggestionOnEnter: 'off',     // Enterでの補完選択を無効化
+    parameterHints: false,              // パラメータヒントを無効化
+    quickSuggestions: false,            // 自動的に補完候補を表示しない
+    inlineSuggest: { enabled: false },  // インライン補完を無効化
+    
+    tabSize: 2,
+    minimap: { enabled: false },
+    //overflow: "auto",
+    automaticLayout: true,
+    theme: "vs-dark",
+  });
+};
+
+const prog = makeEditor(divprog, "javascript");
+const run = makeEditor(divrun, "");
+
+const onchange = () => {
+  const txt = prog.getValue();
+  if (chkwat.checked) {
+    const output = compile(txt);
+    run.setValue(output.toString());
+  } else {
+    const ast = Mochi.parse(txt);
+    run.setValue(JSON.stringify(ast, null, 2));
+  }
+};
+
+//prog.onDidChangeModelContent = onchange; // なぜか初回のみ
+let bkval = null;
+setInterval(() => {
+  const txt = prog.getValue();
+  if (bkval == txt) return;
+  onchange();
+  bkval = txt;
+}, 500);
+
+const src = await (await fetch("example/sum.mochi.js")).text();
+prog.setValue(src);
+
+chkast.oninput = () => onchange();
+chkwat.oninput = () => onchange();
+</script>
+
+<style>
+main {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5em;
+}
+.diveditor {
+  height: 80vh;
+}
+h1 {
+  margin: 0;
+}
+.divchks {
+  padding-top: 1em;
+}
+a {
+  color: gray !important;
+}
+</style>
+
+</body></html>
