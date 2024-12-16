@@ -118,3 +118,4 @@ $ w4 run wasm4simple.wasm
 - add docs
 - make character
 - add test suite
+- add sourcemap (seeAlso [WebAssemblyでもブラウザでステップ実行ができるようになってたので寄り道しながら頑張った話 - Qiita](https://qiita.com/lempiji/items/462cce79dab8166fa5a5))
