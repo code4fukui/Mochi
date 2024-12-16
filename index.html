@@ -2,10 +2,14 @@
 <title>Mochi Playground</title>
 </head><body>
 <main>
-<h1>Mochi Playground</h1>
-<div class=divchks>
-  <label><input type=radio name=radiotype checked id=chkast>AST (構文木)</label>
-  <label><input type=radio name=radiotype id=chkwat>WAT (wasm S式)</label>
+<div class=divheader>
+  <h1>Mochi Playground</h1>
+  <div class=divchks>
+    <label><input type=radio name=radiotype checked id=chkast>AST (構文木)</label>
+    <label><input type=radio name=radiotype id=chkwat>WAT (wasm S式)</label>
+    <label><input type=radio name=radiotype id=chkwasm>WASM (バイナリ)</label>
+    <label><input type=radio name=radiotype id=chkoutput>RUN</label>
+  </div>
 </div>
 <div class=diveditor id=divprog></div>
 <div class=diveditor id=divrun></div>
@@ -16,6 +20,54 @@
 <script type="module">
 import { monaco } from "https://code4fukui.github.io/monaco-editor/monaco.js";
 import { Mochi } from "./Mochi.js";
+import { WABT } from "https://code4fukui.github.io/WABT-es/WABT.js";
+
+const wabt = await WABT();
+
+const wat2wasm = (wat) => {
+	const module = wabt.parseWat("test.wast", wat);
+	const mbin = module.toBinary({ log: false });
+	return mbin.buffer;
+};
+
+const bin2hex = (bin) => {
+  const res = [];
+  const hex = [];
+  for (let i = 0; i < bin.length; i++) {
+    const n = bin[i].toString(16);
+    hex.push(n.length == 1 ? "0" + n : n);
+    if (i % 16 == 15) {
+      res.push(hex.join(" "));
+      hex.length = 0;
+    }
+  }
+  if (hex.length > 0) {
+    res.push(hex.join(" "));
+  }
+  return res.join("\n");
+}
+
+const getEntryFunc = (module) => {
+  const exp = module.instance.exports;
+  let entryfunc = null;
+  for (const name in exp) {
+    entryfunc = name;
+    if (name.indexOf("start") >= 0) {
+      entryfunc = name;
+      break;
+    }
+  }
+  if (!entryfunc) return null;
+  return exp[entryfunc];
+};
+
+const runWASM = async (wasm) => {
+  const module = await WebAssembly.instantiate(wasm);
+  console.log(module.instance.exports);
+  const entry = getEntryFunc(module);
+  const res = await entry();
+  return res;
+};
 
 const compile = (src) => {
   const output = Mochi.compile(src);
@@ -24,7 +76,7 @@ const compile = (src) => {
 };
 
 const makeEditor = (div, language) => {
-  return monaco.editor.create(div, {
+  const editor = monaco.editor.create(div, {
     language,
     autoIndent: true,
     //autoIndent: "none",
@@ -43,19 +95,35 @@ const makeEditor = (div, language) => {
     automaticLayout: true,
     theme: "vs-dark",
   });
+  window.addEventListener("resize", () => {
+    editor.layout();
+  });
+  return editor;
 };
 
 const prog = makeEditor(divprog, "javascript");
 const run = makeEditor(divrun, "");
 
-const onchange = () => {
+const onchange = async () => {
   const txt = prog.getValue();
   if (chkwat.checked) {
     const output = compile(txt);
     run.setValue(output.toString());
-  } else {
+  } else if (chkast.checked) {
     const ast = Mochi.parse(txt);
     run.setValue(JSON.stringify(ast, null, 2));
+  } else if (chkwasm.checked) {
+    const wat = compile(txt);
+    const wasm = wat2wasm(wat)
+    const wasmhex = bin2hex(wasm);
+    run.setValue(wasmhex);
+  } else if (chkoutput.checked) {
+    const wat = compile(txt);
+    const wasm = wat2wasm(wat)
+    const output = await runWASM(wasm);
+    const soutput = (output || "").toString();
+    console.log("out", output, soutput)
+    run.setValue(soutput);
   }
 };
 
@@ -73,16 +141,26 @@ prog.setValue(src);
 
 chkast.oninput = () => onchange();
 chkwat.oninput = () => onchange();
+chkwasm.oninput = () => onchange();
+chkoutput.oninput = () => onchange();
 </script>
 
 <style>
 main {
+  x-display: grid;
+  x-grid-template-columns: 1fr 1fr;
+  x-gap: 0.5em;
+}
+.divheader {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5em;
 }
 .diveditor {
+  display: inline-block;
   height: 80vh;
+  width: calc(50% - .4em);
+  padding: .1em;
 }
 h1 {
   margin: 0;
