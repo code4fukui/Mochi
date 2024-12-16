@@ -229,7 +229,7 @@ const compile = (src, opts = {}) => {
       const p = ast.params.map(p => `(param $${p.name} ${getNameType(p.name)})`).join(" ");
       const expf = exportfuncs[ast.id.name];
       if (!expf) {
-        const result = ast.id.name[0] == "_" ? "" : `(result ${getNameType(ast.id.name)})`;
+        const result = ast.id.name[0] == "_" ? "(result i32)" : `(result ${getNameType(ast.id.name)})`;
         res = `(func $${ast.id.name} ${p.length ? p + " " : ""}${result}\n${walk(ast.body)}\n)`;
       } else {
         const result = expf.result ? `(result ${expf.result})` : "";

@@ -2,7 +2,7 @@
 (memory 1)
 (export "memory" (memory 0))
 (export "_start" (func $_start))
-(func $_start 
+(func $_start (result i32)
 (local $isum i32)
 (local $i i32)
 (local.set $isum (i32.const 0))
