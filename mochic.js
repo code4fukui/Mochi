@@ -46,7 +46,7 @@ if (fn.endsWith(".mochi.js")) {
           }
         };
       }
-      return null;
+      return {};
     };
     const wat = Mochi.compile(src, await getOptions());
     if (opts.wat) {
